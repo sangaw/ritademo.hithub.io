@@ -6,130 +6,87 @@
     <title>ASML Trader</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --asml-blue: #0061af; }
-        body { font-family: sans-serif; margin: 0; background: #f4f7f9; padding: 15px; color: #333; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        .price-label { font-size: 0.9rem; color: #666; margin-bottom: 5px; }
-        .price-val { font-size: 2.5rem; font-weight: 800; color: var(--asml-blue); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .stat-box { background: white; padding: 15px; border-radius: 10px; border: 1px solid #eee; }
-        .stat-box label { font-size: 0.7rem; text-transform: uppercase; color: #888; display: block; }
-        .stat-box span { font-size: 1.2rem; font-weight: bold; }
-        .btn { width: 100%; padding: 18px; border: none; border-radius: 10px; font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
-        .btn-buy { background: #27ae60; color: white; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f9; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .price { font-size: 2.5rem; color: #0061af; font-weight: bold; }
+        .btn { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-buy { background: #2ecc71; color: white; }
         .btn-sell { background: #e74c3c; color: white; }
-        .btn:disabled { background: #ccc; opacity: 0.6; pointer-events: none; }
-        #login-screen { text-align: center; padding-top: 50px; }
-        input { width: 100%; padding: 15px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; font-size: 1rem; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        #status { font-weight: bold; margin-bottom: 10px; }
+        input { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <div id="login-screen">
-        <h2>Enter Name to Trade</h2>
-        <input type="text" id="player-name" placeholder="Your Name">
-        <button class="btn btn-buy" onclick="joinGame()">Enter Market</button>
+    <div id="join-section">
+        <input type="text" id="name-in" placeholder="Enter Name">
+        <button class="btn btn-buy" onclick="join()">Join Game</button>
     </div>
 
-    <div id="game-screen" style="display:none">
-        <div class="card" style="text-align: center;">
-            <div id="day-badge" style="display:inline-block; padding: 4px 12px; background: #e8f4fd; color: var(--asml-blue); border-radius: 20px; font-weight: bold; font-size: 0.8rem; margin-bottom: 10px;">DAY 1 / 5</div>
-            <div class="price-label">ASML Stock Price</div>
-            <div class="price-val">€<span id="market-price">600</span></div>
-            <div id="market-status" style="font-size: 0.8rem; margin-top: 10px; color: #27ae60;">● Market Open</div>
+    <div id="game-section" style="display:none">
+        <div id="status">Connecting...</div>
+        <div class="card">
+            <div>Day <span id="day-ui">1</span> / 5</div>
+            <div class="price">€<span id="price-ui">600</span></div>
         </div>
-
-        <div class="stats-grid">
-            <div class="stat-box"><label>Available Cash</label>€<span id="user-cash">2000</span></div>
-            <div class="stat-box"><label>Your Shares</label><span id="user-shares">0</span> units</div>
+        <div class="card">
+            <p>Cash: €<span id="cash-ui">2000</span></p>
+            <p>Shares: <span id="shares-ui">0</span></p>
         </div>
-
-        <button id="buy-btn" class="btn btn-buy" onclick="trade(1)">BUY 1 SHARE</button>
-        <button id="sell-btn" class="btn btn-sell" onclick="trade(-1)">SELL 1 SHARE</button>
-        <p style="text-align:center; font-size: 0.8rem; color: #999;">Transactions sync automatically with Admin</p>
+        <button id="b-btn" class="btn btn-buy" onclick="trade(1)">BUY 1</button>
+        <button id="s-btn" class="btn btn-sell" onclick="trade(-1)">SELL 1</button>
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomId = urlParams.get('room');
-        const peer = new Peer();
+        let myData = { id: '', cash: 2000, shares: 0 };
+        let market = { price: 600, day: 1, isClosed: false };
         let conn = null;
-        
-        let localData = {
-            id: '',
-            cash: 2000,
-            shares: 0,
-            currentPrice: 600,
-            day: 1,
-            isOver: false
-        };
+        const peer = new Peer();
+        const roomId = new URLSearchParams(window.location.search).get('room');
 
-        function joinGame() {
-            const name = document.getElementById('player-name').value.trim();
-            if (!name) return alert("Please enter your name");
-            localData.id = name;
-            
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'block';
-            
-            initP2P();
-        }
-
-        function initP2P() {
-            if (!roomId) return alert("Invalid Room ID. Scan the QR code again.");
+        function join() {
+            myData.id = document.getElementById('name-in').value;
+            if(!myData.id) return;
+            document.getElementById('join-section').style.display = 'none';
+            document.getElementById('game-section').style.display = 'block';
             
             conn = peer.connect(roomId);
-            
-            conn.on('open', () => {
-                sync(); // Initial sync
-            });
-
             conn.on('data', (data) => {
-                if (data.type === 'SYNC') {
-                    localData.currentPrice = data.price;
-                    localData.day = data.day;
-                    localData.isOver = data.isOver;
+                if(data.type === 'SYNC') {
+                    market.price = data.price;
+                    market.day = data.day;
+                    market.isClosed = data.isClosed;
                     updateUI();
                 }
             });
         }
 
-        function trade(amount) {
-            if (localData.isOver) return;
-            
-            const cost = amount * localData.currentPrice;
-            
-            if (amount > 0 && localData.cash >= cost) {
-                localData.cash -= cost;
-                localData.shares += amount;
-            } else if (amount < 0 && localData.shares >= Math.abs(amount)) {
-                localData.cash += Math.abs(cost);
-                localData.shares += amount;
-            } else {
-                return;
+        function trade(amt) {
+            if(market.isClosed) return;
+            const cost = amt * market.price;
+            if(amt > 0 && myData.cash >= cost) {
+                myData.cash -= cost; myData.shares += amt;
+            } else if(amt < 0 && myData.shares >= Math.abs(amt)) {
+                myData.cash += Math.abs(cost); myData.shares += amt;
             }
-            
             updateUI();
-            sync();
-        }
-
-        function sync() {
-            if (conn && conn.open) conn.send(localData);
+            conn.send(myData);
         }
 
         function updateUI() {
-            document.getElementById('market-price').innerText = localData.currentPrice;
-            document.getElementById('day-badge').innerText = `DAY ${localData.day} / 5`;
-            document.getElementById('user-cash').innerText = localData.cash.toFixed(2);
-            document.getElementById('user-shares').innerText = localData.shares;
+            document.getElementById('day-ui').innerText = market.day;
+            document.getElementById('price-ui').innerText = market.price;
+            document.getElementById('cash-ui').innerText = myData.cash.toFixed(2);
+            document.getElementById('shares-ui').innerText = myData.shares;
             
-            if (localData.isOver) {
-                document.getElementById('market-status').innerText = "🏁 MARKET CLOSED";
-                document.getElementById('market-status').style.color = "#666";
-                document.getElementById('buy-btn').disabled = true;
-                document.getElementById('sell-btn').disabled = true;
+            if(market.isClosed) {
+                document.getElementById('status').innerText = "🏁 MARKET CLOSED";
+                document.getElementById('status').style.color = "red";
+                document.getElementById('b-btn').disabled = true;
+                document.getElementById('s-btn').disabled = true;
             } else {
-                document.getElementById('buy-btn').disabled = localData.cash < localData.currentPrice;
-                document.getElementById('sell-btn').disabled = localData.shares <= 0;
+                document.getElementById('status').innerText = "🟢 Market Open";
+                document.getElementById('status').style.color = "green";
             }
         }
     </script>
