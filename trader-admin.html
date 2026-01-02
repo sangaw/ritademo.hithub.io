@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASML Trading Demo - Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .qr-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .qr-section h2 {
+            margin-top: 0;
+        }
+        .qr-code-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        #qrcode {
+            display: inline-block;
+        }
+        .trader-url {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .btn-generate {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .btn-generate:hover {
+            background: #45a049;
+        }
+        .game-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .info-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .info-card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            min-width: 150px;
+        }
+        .btn-refresh {
+            background: #2196f3;
+            color: white;
+        }
+        .btn-refresh:hover {
+            background: #0b7dda;
+        }
+        .btn-reset {
+            background: #f44336;
+            color: white;
+        }
+        .btn-reset:hover {
+            background: #da190b;
+        }
+        .btn-advance {
+            background: #4caf50;
+            color: white;
+        }
+        .btn-advance:hover {
+            background: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+            color: #333;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .positive {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .negative {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .price-history {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .price-history h2 {
+            margin-top: 0;
+        }
+        .price-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .no-traders {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+        }
+        .leaderboard {
+            margin-top: 30px;
+        }
+        .rank-1 { background: #ffd700 !important; }
+        .rank-2 { background: #c0c0c0 !important; }
+        .rank-3 { background: #cd7f32 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Admin Dashboard - ASML Trading Demo</h1>
+
+        <div class="qr-section">
+            <h2>📱 Trader Access QR Code</h2>
+            <p>Have traders scan this QR code to join the trading demo</p>
+
+            <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <label style="display: block; margin-bottom: 10px;">Enter Trader Page URL:</label>
+                <input type="text" id="trader-url-input" class="url-input" placeholder="https://your-trader-page-url.com">
+                <button class="btn-generate" onclick="generateQR()">Generate QR Code</button>
+            </div>
+
+            <div class="qr-code-container" id="qr-container" style="display: none;">
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="trader-url" id="display-url" style="display: none;">
+                <strong>Trader URL:</strong> <span id="current-url"></span>
+            </div>
+        </div>
+
+        <div class="game-info">
+            <div class="info-card">
+                <h3>Current Day</h3>
+                <div class="value" id="admin-day">1</div>
+            </div>
+            <div class="info-card">
+                <h3>Current Price</h3>
+                <div class="value">€<span id="admin-price">600</span></div>
+            </div>
+            <div class="info-card">
+                <h3>Active Traders</h3>
+                <div class="value" id="trader-count">0</div>
+            </div>
+            <div class="info-card">
+                <h3>Total Volume</h3>
+                <div class="value">€<span id="total-volume">0</span></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-refresh" onclick="refreshData()">🔄 Refresh Data</button>
+            <button class="btn-advance" onclick="advanceDay()">⏭️ Advance Day</button>
+            <button class="btn-reset" onclick="resetGame()">🔄 Reset Game</button>
+        </div>
+
+        <div class="leaderboard">
+            <h2>Trader Positions & Leaderboard</h2>
+            <div id="trader-table"></div>
+        </div>
+
+        <div class="price-history">
+            <h2>Price History</h2>
+            <div id="price-history-list"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        let gameState = null;
+        let allTraders = {};
+        let qrCodeGenerated = false;
+
+        function generateQR() {
+            const url = document.getElementById('trader-url-input').value.trim();
+            if (!url) {
+                alert('Please enter the trader page URL');
+                return;
+            }
+
+            // Clear previous QR code if exists
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+
+            // Generate new QR code
+            new QRCode(qrContainer, {
+                text: url,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Show QR code and URL
+            document.getElementById('qr-container').style.display = 'inline-block';
+            document.getElementById('display-url').style.display = 'block';
+            document.getElementById('current-url').textContent = url;
+
+            qrCodeGenerated = true;
+        }
+
+        async function loadAllData() {
+            try {
+                // Load game state
+                const gameResult = await window.storage.get('game-state', true);
+                if (gameResult) {
+                    gameState = JSON.parse(gameResult.value);
+                } else {
+                    gameState = {
+                        currentDay: 1,
+                        currentPrice: 600,
+                        priceHistory: [{day: 0, price: 600, move: 0}]
+                    };
+                    await window.storage.set('game-state', JSON.stringify(gameState), true);
+                }
+
+                // Load all traders
+                const keysResult = await window.storage.list('trader-', true);
+                allTraders = {};
+
+                if (keysResult && keysResult.keys) {
+                    for (const key of keysResult.keys) {
+                        try {
+                            const traderResult = await window.storage.get(key, true);
+                            if (traderResult) {
+                                const traderId = key.replace('trader-', '');
+                                allTraders[traderId] = JSON.parse(traderResult.value);
+                            }
+                        } catch (e) {
+                            console.log('Error loading trader:', key);
+                        }
+                    }
+                }
+
+                updateDisplay();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                gameState = {
+                    currentDay: 1,
+                    currentPrice: 600,
+                    priceHistory: [{day: 0, price: 600, move: 0}]
+                };
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            if (!gameState) return;
+
+            document.getElementById('admin-day').textContent = gameState.currentDay;
+            document.getElementById('admin-price').textContent = gameState.currentPrice;
+            document.getElementById('trader-count').textContent = Object.keys(allTraders).length;
+
+            // Calculate total volume
+            let totalVolume = 0;
+            Object.values(allTraders).forEach(trader => {
+                totalVolume += trader.cash + (trader.shares * gameState.currentPrice);
+            });
+            document.getElementById('total-volume').textContent = totalVolume.toFixed(0);
+
+            // Update trader table
+            updateTraderTable();
+
+            // Update price history
+            updatePriceHistory();
+        }
+
+        function updateTraderTable() {
+            const tableDiv = document.getElementById('trader-table');
+
+            if (Object.keys(allTraders).length === 0) {
+                tableDiv.innerHTML = '<div class="no-traders">No traders yet. Share the trader page QR code to get started!</div>';
+                return;
+            }
+
+            // Calculate portfolio values and sort
+            const traderArray = Object.entries(allTraders).map(([id, data]) => {
+                const portfolioValue = data.cash + (data.shares * gameState.currentPrice);
+                const profit = portfolioValue - 2000;
+                const profitPercent = ((portfolioValue / 2000) - 1) * 100;
+                return {
+                    id,
+                    ...data,
+                    portfolioValue,
+                    profit,
+                    profitPercent
+                };
+            }).sort((a, b) => b.portfolioValue - a.portfolioValue);
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Trader ID</th>
+                            <th>Cash</th>
+                            <th>Shares</th>
+                            <th>Portfolio Value</th>
+                            <th>Profit/Loss</th>
+                            <th>Return %</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            traderArray.forEach((trader, index) => {
+                const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+                const profitClass = trader.profit >= 0 ? 'positive' : 'negative';
+
+                html += `
+                    <tr class="${rankClass}">
+                        <td><strong>${index + 1}</strong></td>
+                        <td>${trader.id}</td>
+                        <td>€${trader.cash.toFixed(2)}</td>
+                        <td>${trader.shares}</td>
+                        <td><strong>€${trader.portfolioValue.toFixed(2)}</strong></td>
+                        <td class="${profitClass}">${trader.profit >= 0 ? '+' : ''}€${trader.profit.toFixed(2)}</td>
+                        <td class="${profitClass}">${trader.profitPercent >= 0 ? '+' : ''}${trader.profitPercent.toFixed(2)}%</td>
+                        <td>${trader.transactions.length}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            tableDiv.innerHTML = html;
+        }
+
+        function updatePriceHistory() {
+            const historyDiv = document.getElementById('price-history-list');
+
+            if (!gameState.priceHistory || gameState.priceHistory.length === 0) {
+                historyDiv.innerHTML = '<p>No price history yet</p>';
+                return;
+            }
+
+            historyDiv.innerHTML = gameState.priceHistory.map(h => {
+                const moveText = h.move > 0 ? `📈 +€${h.move}` : h.move < 0 ? `📉 €${h.move}` : 'Opening';
+                const moveClass = h.move > 0 ? 'positive' : h.move < 0 ? 'negative' : '';
+                return `
+                    <div class="price-item">
+                        <span><strong>Day ${h.day}:</strong> €${h.price}</span>
+                        <span class="${moveClass}">${moveText}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function advanceDay() {
+            if (gameState.currentDay >= 3) {
+                alert('Game is already at day 3!');
+                return;
+            }
+
+            if (!confirm('Advance to the next day? This will trigger a random price movement.')) {
+                return;
+            }
+
+            const move = Math.random() > 0.5 ? 100 : -100;
+            gameState.currentPrice += move;
+            gameState.currentDay += 1;
+            gameState.priceHistory.push({
+                day: gameState.currentDay,
+                price: gameState.currentPrice,
+                move: move
+            });
+
+            await window.storage.set('game-state', JSON.stringify(gameState), true);
+
+            alert(`Day ${gameState.currentDay}: Price ${move > 0 ? 'increased' : 'decreased'} by €100 to €${gameState.currentPrice}`);
+
+            await loadAllData();
+        }
+
+        async function resetGame() {
+            if (!confirm('Are you sure you want to reset the entire game? This will delete all trader data!')) {
+                return;
+            }
+
+            if (!confirm('This action cannot be undone. Reset everything?')) {
+                return;
+            }
+
+            try {
+                // Delete all trader data
+                const keysResult = await window.storage.list('trader-', true);
+                if (keysResult && keysResult.keys) {
+                    for (const key of keysResult.keys) {
+                        await window.storage.delete(key, true);
+                    }
+                }
+
+                // Reset game state
+                gameState = {
+                    currentDay: 1,
+                    currentPrice: 600,
+                    priceHistory: [{day: 0, price: 600, move: 0}]
+                };
+                await window.storage.set('game-state', JSON.stringify(gameState), true);
+
+                allTraders = {};
+                updateDisplay();
+                alert('Game reset successfully!');
+            } catch (error) {
+                console.error('Error resetting game:', error);
+                alert('Error resetting game. Please try again.');
+            }
+        }
+
+        function refreshData() {
+            loadAllData();
+        }
+
+        // Auto-refresh every 10 seconds
+        setInterval(refreshData, 10000);
+
+        // Initial load
+        loadAllData();
+    </script>
+</body>
+</html>
