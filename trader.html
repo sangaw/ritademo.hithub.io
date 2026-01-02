@@ -3,374 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo</title>
+    <title>ASML Trader - Mobile Client</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .info-box {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        .info-box h3 {
-            margin-top: 0;
-            color: #1976d2;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        .stat {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-top: 5px;
-        }
-        .price-move {
-            font-size: 18px;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .price-up {
-            background: #c8e6c9;
-            color: #2e7d32;
-        }
-        .price-down {
-            background: #ffcdd2;
-            color: #c62828;
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-buy {
-            background: #4caf50;
-            color: white;
-        }
-        .btn-buy:hover {
-            background: #45a049;
-        }
-        .btn-wait {
-            background: #ff9800;
-            color: white;
-        }
-        .btn-wait:hover {
-            background: #e68900;
-        }
-        .btn-sell {
-            background: #f44336;
-            color: white;
-        }
-        .btn-sell:hover {
-            background: #da190b;
-        }
-        .hidden {
-            display: none;
-        }
-        .trader-id {
-            background: #333;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 18px;
-            margin: 20px 0;
-        }
-        .history {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 5px;
-        }
-        .history h3 {
-            margin-top: 0;
-        }
-        .transaction {
-            padding: 10px;
-            margin: 5px 0;
-            background: white;
-            border-radius: 3px;
-            border-left: 4px solid #2196f3;
-        }
+        :root { --asml-blue: #0061af; }
+        body { font-family: sans-serif; margin: 0; padding: 20px; background: #f4f7f9; }
+        .card { background: white; padding: 20px; border-radius: 12px; shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .price-display { font-size: 2rem; font-weight: bold; color: var(--asml-blue); text-align: center; }
+        .stats { display: flex; justify-content: space-between; margin-top: 20px; }
+        .btn { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .btn-buy { background: #2ecc71; color: white; }
+        .btn-sell { background: #e74c3c; color: white; }
+        .btn:disabled { background: #ccc; }
+        #status-msg { text-align: center; font-size: 0.8rem; color: #666; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🏦 ASML Trading Demo</h1>
+    <div id="setup-screen">
+        <h2>Enter Trading Name</h2>
+        <input type="text" id="trader-name" placeholder="E.g. AlphaOne" style="width: 80%; padding: 10px; margin-bottom: 20px;">
+        <button class="btn btn-buy" onclick="startApp()">Join Game</button>
+    </div>
 
-        <div id="welcome-screen">
-            <div class="info-box">
-                <h3>Welcome Trader!</h3>
-                <p>You have <strong>€2,000</strong> to trade ASML stock over 3 days.</p>
-                <p>Starting price: <strong>€600</strong></p>
-                <p>Each day the stock will move by €100 (up or down randomly).</p>
-                <p>Make your trading decisions wisely!</p>
-            </div>
-            <button class="btn-buy" onclick="startTrading()">Start Trading</button>
+    <div id="game-screen" style="display:none;">
+        <div class="card">
+            <div id="day-display">Day 1</div>
+            <div class="price-display">€<span id="current-price">600</span></div>
+            <div id="status-msg">Connecting to Admin...</div>
         </div>
 
-        <div id="trading-screen" class="hidden">
-            <div class="trader-id">Your Trader ID: <span id="trader-id"></span></div>
-
+        <div class="card">
             <div class="stats">
-                <div class="stat">
-                    <div class="stat-label">Day</div>
-                    <div class="stat-value" id="current-day">1</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">ASML Price</div>
-                    <div class="stat-value">€<span id="current-price">600</span></div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">Cash</div>
-                    <div class="stat-value">€<span id="cash">2000</span></div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">Shares</div>
-                    <div class="stat-value" id="shares">0</div>
-                </div>
-            </div>
-
-            <div id="price-change" class="price-move hidden"></div>
-
-            <div id="trading-actions">
-                <button class="btn-buy" onclick="buyShares()">Buy Shares</button>
-                <button class="btn-sell" onclick="sellShares()" id="sell-btn" disabled>Sell Shares</button>
-                <button class="btn-wait" onclick="waitDecision()">Wait</button>
-            </div>
-
-            <div class="history">
-                <h3>Your Transactions</h3>
-                <div id="transaction-list">
-                    <p>No transactions yet</p>
-                </div>
+                <div><strong>Cash:</strong><br>€<span id="cash-val">2000</span></div>
+                <div><strong>Shares:</strong><br><span id="shares-val">0</span></div>
             </div>
         </div>
+
+        <button class="btn btn-buy" onclick="trade(1)" id="buy-btn">BUY 1 ASML</button>
+        <button class="btn btn-sell" onclick="trade(-1)" id="sell-btn">SELL 1 ASML</button>
     </div>
 
     <script>
-        let traderId = null;
         let traderData = {
+            id: '',
             cash: 2000,
             shares: 0,
-            transactions: []
-        };
-        let gameState = {
-            currentDay: 1,
             currentPrice: 600,
-            priceHistory: []
+            day: 1
         };
 
-        async function loadGameState() {
-            try {
-                const result = await window.storage.get('game-state', true);
-                if (result) {
-                    gameState = JSON.parse(result.value);
-                } else {
-                    await saveGameState();
+        let peer = new Peer();
+        let conn = null;
+
+        // 1. Get Admin ID from URL (?room=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+
+        function startApp() {
+            const name = document.getElementById('trader-name').value;
+            if (!name) return alert("Please enter a name");
+            traderData.id = name;
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+
+            connectToAdmin();
+        }
+
+        function connectToAdmin() {
+            if (!roomId) {
+                document.getElementById('status-msg').innerText = "Error: No Room ID found in QR code.";
+                return;
+            }
+
+            conn = peer.connect(roomId);
+
+            conn.on('open', () => {
+                document.getElementById('status-msg').innerText = "🟢 Connected to Market";
+                syncWithAdmin();
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'SYNC') {
+                    traderData.day = data.day;
+                    traderData.currentPrice = data.price;
+                    updateUI();
                 }
-            } catch (error) {
-                console.log('Initializing new game state');
-                await saveGameState();
-            }
+            });
+
+            conn.on('close', () => {
+                document.getElementById('status-msg').innerText = "🔴 Disconnected";
+            });
         }
 
-        async function saveGameState() {
-            try {
-                await window.storage.set('game-state', JSON.stringify(gameState), true);
-            } catch (error) {
-                console.error('Error saving game state:', error);
-            }
-        }
+        function trade(amount) {
+            const cost = amount * traderData.currentPrice;
 
-        async function saveTraderData() {
-            try {
-                await window.storage.set('trader-' + traderId, JSON.stringify(traderData), true);
-            } catch (error) {
-                console.error('Error saving trader data:', error);
-            }
-        }
-
-        function generateTraderId() {
-            return 'T' + Math.random().toString(36).substr(2, 6).toUpperCase();
-        }
-
-        async function startTrading() {
-            traderId = generateTraderId();
-            await loadGameState();
-
-            document.getElementById('welcome-screen').classList.add('hidden');
-            document.getElementById('trading-screen').classList.remove('hidden');
-            document.getElementById('trader-id').textContent = traderId;
-
-            updateDisplay();
-            await saveTraderData();
-        }
-
-        function updateDisplay() {
-            document.getElementById('current-day').textContent = gameState.currentDay;
-            document.getElementById('current-price').textContent = gameState.currentPrice;
-            document.getElementById('cash').textContent = traderData.cash.toFixed(2);
-            document.getElementById('shares').textContent = traderData.shares;
-
-            document.getElementById('sell-btn').disabled = traderData.shares === 0;
-
-            updateTransactionList();
-        }
-
-        function updateTransactionList() {
-            const listDiv = document.getElementById('transaction-list');
-            if (traderData.transactions.length === 0) {
-                listDiv.innerHTML = '<p>No transactions yet</p>';
+            if (amount > 0 && traderData.cash >= cost) {
+                traderData.cash -= cost;
+                traderData.shares += amount;
+            } else if (amount < 0 && traderData.shares >= Math.abs(amount)) {
+                traderData.cash += Math.abs(cost);
+                traderData.shares += amount;
             } else {
-                listDiv.innerHTML = traderData.transactions.map(t =>
-                    `<div class="transaction">
-                        <strong>Day ${t.day}:</strong> ${t.action} ${t.shares || 0} shares at €${t.price}
-                        ${t.action === 'Wait' ? '' : '(€' + (t.amount || 0).toFixed(2) + ')'}
-                    </div>`
-                ).join('');
+                alert("Invalid trade!");
+                return;
+            }
+
+            updateUI();
+            syncWithAdmin();
+        }
+
+        function syncWithAdmin() {
+            if (conn && conn.open) {
+                conn.send(traderData);
             }
         }
 
-        async function buyShares() {
-            const maxShares = Math.floor(traderData.cash / gameState.currentPrice);
-            if (maxShares === 0) {
-                alert('Not enough cash to buy shares!');
-                return;
-            }
+        function updateUI() {
+            document.getElementById('current-price').innerText = traderData.currentPrice;
+            document.getElementById('day-display').innerText = "Day " + traderData.day;
+            document.getElementById('cash-val').innerText = traderData.cash.toFixed(2);
+            document.getElementById('shares-val').innerText = traderData.shares;
 
-            const shares = parseInt(prompt(`How many shares do you want to buy? (Max: ${maxShares})`));
-            if (!shares || shares < 1) return;
-            if (shares > maxShares) {
-                alert('Not enough cash!');
-                return;
-            }
-
-            const cost = shares * gameState.currentPrice;
-            traderData.cash -= cost;
-            traderData.shares += shares;
-            traderData.transactions.push({
-                day: gameState.currentDay,
-                action: 'Buy',
-                shares: shares,
-                price: gameState.currentPrice,
-                amount: cost
-            });
-
-            await saveTraderData();
-            await advanceDay();
-        }
-
-        async function sellShares() {
-            if (traderData.shares === 0) {
-                alert('You have no shares to sell!');
-                return;
-            }
-
-            const shares = parseInt(prompt(`How many shares do you want to sell? (You have: ${traderData.shares})`));
-            if (!shares || shares < 1) return;
-            if (shares > traderData.shares) {
-                alert('You don\'t have that many shares!');
-                return;
-            }
-
-            const revenue = shares * gameState.currentPrice;
-            traderData.cash += revenue;
-            traderData.shares -= shares;
-            traderData.transactions.push({
-                day: gameState.currentDay,
-                action: 'Sell',
-                shares: shares,
-                price: gameState.currentPrice,
-                amount: revenue
-            });
-
-            await saveTraderData();
-            await advanceDay();
-        }
-
-        async function waitDecision() {
-            traderData.transactions.push({
-                day: gameState.currentDay,
-                action: 'Wait',
-                price: gameState.currentPrice
-            });
-
-            await saveTraderData();
-            await advanceDay();
-        }
-
-        async function advanceDay() {
-            if (gameState.currentDay >= 3) {
-                alert('Trading period complete! Thank you for participating.');
-                return;
-            }
-
-            // Random price move
-            const move = Math.random() > 0.5 ? 100 : -100;
-            gameState.currentPrice += move;
-            gameState.currentDay += 1;
-
-            gameState.priceHistory.push({
-                day: gameState.currentDay,
-                price: gameState.currentPrice,
-                move: move
-            });
-
-            await saveGameState();
-
-            const priceChangeDiv = document.getElementById('price-change');
-            priceChangeDiv.textContent = move > 0 ?
-                `📈 Price UP by €100! New price: €${gameState.currentPrice}` :
-                `📉 Price DOWN by €100! New price: €${gameState.currentPrice}`;
-            priceChangeDiv.className = move > 0 ? 'price-move price-up' : 'price-move price-down';
-            priceChangeDiv.classList.remove('hidden');
-
-            updateDisplay();
-
-            if (gameState.currentDay > 3) {
-                alert('Trading period complete! Final portfolio value: €' +
-                    (traderData.cash + traderData.shares * gameState.currentPrice).toFixed(2));
-            }
+            // Disable buttons based on affordability
+            document.getElementById('buy-btn').disabled = traderData.cash < traderData.currentPrice;
+            document.getElementById('sell-btn').disabled = traderData.shares <= 0;
         }
     </script>
 </body>
-
 </html>
